@@ -1,0 +1,1099 @@
+esphome:
+  name: your
+  friendly_name: your
+  min_version: 2025.5.0
+  name_add_mac_suffix: false
+  on_boot:
+    priority: -100
+    then:
+      - delay: 45s
+      - script.execute: update_screen
+
+esp32:
+  board: your
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Allow Over-The-Air updates
+ota:
+  platform: esphome
+
+api:
+  encryption:
+    key: "your"
+
+wifi:
+  ssid: "your"
+  password: "your"
+
+
+globals:
+  - id: recorded_display_refresh
+    type: int
+    restore_value: yes
+    initial_value: '0' 
+  - id: last_screen_update
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+  - id: current_hour
+    type: int
+  - id: current_minute
+    type: int
+  - id: today
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: analyse_prete
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: cpu_speed
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+# 🔤 Police compatible ❤️
+font:
+  # Gotham Regular
+  - file: "/config/esphome/GothamRnd-Book.ttf"
+    id: book25
+    size: 25
+  - file: "/config/esphome/GothamRnd-Book.ttf"
+    id: book160
+    size: 160
+
+  # Gotham Bold
+  - file: "/config/esphome/GothamRnd-Bold.ttf"
+    id: bold30
+    size: 30
+    glyphs: ['''', '!', '"', '%', '(', ')', '+', '=', ',', '-', '_', '.', ':', '°', ' ', # <-- APOSTROPHE AJOUTÉE ICI
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+      'é', 'à', 'è', 'ç', 'ù', 'É', 'À', 'È', 'Ç', 'Ù', '€']
+  - file: "/config/esphome/GothamRnd-Bold.ttf"
+    id: bold40
+    size: 40
+    glyphs: ['!', '"', '%', '(', ')', '+', '=', ',', '-', '_', '.', ':', '°', ' ',
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+      'é', 'à', 'è', 'ç', 'ù', 'É', 'À', 'È', 'Ç', 'Ù', '€']
+  - file: "/config/esphome/GothamRnd-Bold.ttf"
+    id: bold70
+    size: 55
+    glyphs: ['.', '°', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '-', '%']
+
+  # Arial pour liste pièces chauffées (texte petit)
+  - file: "/config/esphome/Arial.ttf"
+    id: font1_2
+    size: 15
+
+  # Font custom pour température extérieure (en haut à droite)
+  - file: "gfonts://Roboto"
+    id: font1
+    size: 25
+
+  # MaterialDesignIcons pour WiFi
+  - file: "/config/esphome/materialdesignicons-webfont.ttf"
+    id: wifi_font
+    size: 15
+    glyphs:
+      - "\U000F05A9" # mdi-wifi
+      - "\U000F0928" # mdi-wifi-strength-4
+      - "\U000F0925" # mdi-wifi-strength-3 
+      - "\U000F0922" # mdi-wifi-strength-2
+      - "\U000F091F" # mdi-wifi-strength-1
+      - "\U000F092B" # mdi-wifi-strength-alert-outline
+      - "\U000F054B" # mdi umbrella-outline
+      - "\U000F0F29" # mdi snowflake-alert
+      - "\U000F0535" # mdi trending-up
+      - "\U000F0533" # mdi trending-down 
+
+  # MaterialDesignIcons météo/énergie/etc., multi-tailles
+  - file: "/config/esphome/materialdesignicons-webfont.ttf"
+    id: mdi36
+    size: 36
+    glyphs: &mdi-weather-glyphs
+      - "\U000F0590" # mdi-weather-cloudy
+      - "\U000F0F2F" # mdi-weather-cloudy-alert
+      - "\U000F0E6E" # mdi-weather-cloudy-arrow-right
+      - "\U000F0591" # mdi-weather-fog
+      - "\U000F0592" # mdi-weather-hail
+      - "\U000F0F30" # mdi-weather-hazy
+      - "\U000F0898" # mdi-weather-hurricane
+      - "\U000F0593" # mdi-weather-lightning
+      - "\U000F067E" # mdi-weather-lightning-rainy
+      - "\U000F0594" # mdi-weather-night
+      - "\U000F0F65" # mdi-weather-clear-night
+      - "\U000F0F31" # mdi-weather-night-partly-cloudy
+      - "\U000F0595" # mdi-weather-partly-cloudy
+      - "\U000F0F32" # mdi-weather-partly-lightning
+      - "\U000F0F33" # mdi-weather-partly-rainy
+      - "\U000F0F34" # mdi-weather-partly-snowy
+      - "\U000F0F35" # mdi-weather-partly-snowy-rainy
+      - "\U000F0596" # mdi-weather-pouring
+      - "\U000F0597" # mdi-weather-rainy
+      - "\U000F0598" # mdi-weather-snowy
+      - "\U000F0F36" # mdi-weather-snowy-heavy
+      - "\U000F067F" # mdi-weather-snowy-rainy
+      - "\U000F0599" # mdi-weather-sunny
+      - "\U000F0F37" # mdi-weather-sunny-alert
+      - "\U000F14E4" # mdi-weather-sunny-off
+      - "\U000F059A" # mdi-weather-sunset
+      - "\U000F059B" # mdi-weather-sunset-down
+      - "\U000F059C" # mdi-weather-sunset-up
+      - "\U000F0F38" # mdi-weather-tornado
+      - "\U000F059D" # mdi-weather-windy
+      - "\U000F059E" # mdi-weather-windy-variant
+      # Energie, domotique, calendrier...
+      - "\U000F1A74" # mdi-solar-power-variant-outline
+      - "\U000F1904" # mdi-home-lightning-bolt-outline
+      - "\U000F0510" # mdi-thermometer
+      - "\U000F0D43" # mdi-air-quality
+      - "\U000F14EE" # mdi-price-check
+      - "\U000F1A91" # mdi-cash-clock
+      - "\U000F00F6" # mdi-calendar-today
+      - "\U000F1135" # mdi-calendar-arrow-right
+      - "\U000F1252" # mdi-light-on
+      - "\U000F10DA" # mdi-car-electric
+      - "\U000F050F" # mdi-weather-sunny
+      - "\U000F0A10" # mdi-home-battery
+      - "\U000F0F7D" # mdi-washing-machine
+      - "\U000F10E4" # mdi-timer-sand
+      - "\U000F071C" # mdi-flash-alert
+      - "\U000F0E10" # mdi-microwave
+      - "\U000F0769" # mdi-alert
+      - "\U000F0A0B" # mdi-battery-alert
+      - "\U000F058E" # mdi-clock-outline
+      - "\U000F0D6A" # mdi-cash
+      - "\U000F05A9" # mdi-calendar-clock
+      - "\U000F105E" # mdi-clock-check
+      - "\U000F0E57" # mdi-solar-panel
+      - "\U000F028A" # mdi-check
+      - "\U000F08D3" # mdi-power-plug-off
+      - "\U000F00D1" # mdi-alert-circle
+      - "\U000F05B3" # mdi-transmission-tower
+      - "\U000F02A4" # mdi-fire
+      - "\U000F012C" # mdi-check-circle
+      - "\U000F07A6" # mdi-checkbox-marked-circle-outline
+      - "\U000F0A12" # mdi-smiley
+      - "\U000F0C1E" # mdi-water-boiler
+      - "\U000F024B" # mdi-home-outline
+
+  - file: "/config/esphome/materialdesignicons-webfont.ttf"
+    id: mdi80
+    size: 80
+    glyphs: *mdi-weather-glyphs
+
+  - file: "/config/esphome/materialdesignicons-webfont.ttf"
+    id: mdi120
+    size: 200
+    glyphs: *mdi-weather-glyphs
+
+# 🌀 Bus SPI pour écran
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO4  # Anciennement GPIO23, non dispo
+
+# 🖼️ Affichage e-paper
+display:
+  - platform: waveshare_epaper
+    id: epaper_display
+    model: 7.30in-f
+    cs_pin: GPIO5
+    dc_pin: GPIO6
+    reset_pin: GPIO7
+    busy_pin:
+      number: GPIO15
+      inverted: true
+    rotation: 270°
+    reset_duration: 2ms
+    update_interval: never
+    auto_clear_enabled: true
+    lambda: |-
+      // Palette exacte (à 4 arguments)
+      const auto BLACK   = Color(0,   0,   0,   0);
+      const auto RED     = Color(255, 0,   0,   0);
+      const auto GREEN   = Color(0,   255, 0,   0);
+      const auto BLUE    = Color(0,   0,   255, 0);
+      const auto YELLOW  = Color(255, 255, 0,   0);
+      const auto ORANGE  = Color(255, 127, 0,   0);
+      const auto WHITE   = Color(255, 255, 255, 0);
+
+      // Affichage du signal wifi
+      if (id(wifisignal).has_state()) {
+          if (id(wifisignal).state >= -50) {
+              // Excellent
+              it.printf(470, 8, id(wifi_font), GREEN, TextAlign::CENTER, "\U000F0928");
+          } else if (id(wifisignal).state >= -60) {
+              // Good
+              it.printf(470, 8, id(wifi_font), GREEN, TextAlign::CENTER, "\U000F0925");
+          } else if (id(wifisignal).state >= -67) {
+              // Fair
+              it.printf(470, 8, id(wifi_font), ORANGE, TextAlign::CENTER, "\U000F0922");
+          } else if (id(wifisignal).state >= -70) {
+              // Weak
+              it.printf(470, 8, id(wifi_font), YELLOW, TextAlign::CENTER, "\U000F091F");
+          } else {
+              // Unlikely working signal
+              it.printf(470, 8, id(wifi_font), RED, TextAlign::CENTER, "\U000F092B");
+          }
+      }
+      // Map de la date en fr
+      std::map<std::string, std::string> jour_semaine_traduction = {
+          {"Monday", "Lundi"},
+          {"Tuesday", "Mardi"},
+          {"Wednesday", "Mercredi"},
+          {"Thursday", "Jeudi"},
+          {"Friday", "Vendredi"},
+          {"Saturday", "Samedi"},
+          {"Sunday", "Dimanche"}
+      };
+
+      std::map<std::string, std::string> mois_traduction = {
+          {"January", "Janvier"},
+          {"February", "Fevrier"},
+          {"March", "Mars"},
+          {"April", "Avril"},
+          {"May", "Mai"},
+          {"June", "Juin"},
+          {"July", "Juillet"},
+          {"August", "Aout"},
+          {"September", "Septembre"},
+          {"October", "Octobre"},
+          {"November", "Novembre"},
+          {"December", "Decembre"}
+      };
+
+      // Affichage de la date
+      // --- Affichage de la date --- //
+      std::string jour_semaine = id(jour_de_la_semaine).state;
+      auto trad_jour = jour_semaine_traduction.find(jour_semaine);
+      if (trad_jour != jour_semaine_traduction.end()) {
+          it.print(110, 13, id(bold30), BLACK, TextAlign::CENTER, trad_jour->second.c_str());
+      } else {
+          it.print(110, 13, id(bold30), BLACK, TextAlign::CENTER, jour_semaine.c_str());
+      }
+
+      // Numéro du jour (gros et rouge)
+      it.print(90, 40, id(book160), RED, TextAlign::TOP_CENTER, id(jour_du_mois).state.c_str());
+
+      // Affichage vertical et justifié du mois
+      std::string mois = id(mois_actuel).state;
+      auto trad_mois = mois_traduction.find(mois);
+      if (trad_mois != mois_traduction.end()) {
+          mois = trad_mois->second;
+      }
+      int n_lettres = mois.size();
+      int y_top = 10;       // position de départ verticale
+      int y_bottom = 200;   // position d'arrivée verticale (adapte selon ton écran)
+      float line_height = (n_lettres > 1) ? float(y_bottom - y_top) / (n_lettres - 1) : 0;
+      for (int i = 0; i < n_lettres; i++) {
+          std::string letter(1, mois[i]);
+          int y = y_top + int(i * line_height);
+          it.print(205, y, id(bold30), BLACK, TextAlign::CENTER, letter.c_str());
+      }
+
+      it.line(240, 10, 240, 200, RED);
+
+      // mapping meteo
+      std::map<std::string, std::string> weather_icon_map
+      {
+      {"cloudy", "\U000F0590"},
+      {"cloudy-alert", "\U000F0F2F"},
+      {"cloudy-arrow-right", "\U000F0E6E"},
+      {"fog", "\U000F0591"}, 
+      {"hail", "\U000F0592"},
+      {"hazy", "\U000F0F30"},
+      {"hurricane", "\U000F0898"},
+      {"lightning", "\U000F0593"},
+      {"lightning-rainy", "\U000F067E"},
+      {"night", "\U000F0594"},
+      {"clear-night", "\U000F0594"},
+      {"night-partly-cloudy", "\U000F0F31"},
+      {"partlycloudy", "\U000F0595"},
+      {"partly-lightning", "\U000F0F32"},
+      {"partly-rainy", "\U000F0F33"},
+      {"partly-snowy", "\U000F0F34"},
+      {"partly-snowy-rainy", "\U000F0F35"},
+      {"pouring", "\U000F0596"},
+      {"rainy", "\U000F0597"},
+      {"snowy", "\U000F0598"},
+      {"snowy-heavy", "\U000F0F36"},
+      {"snowy-rainy", "\U000F067F"},
+      {"sunny", "\U000F0599"},
+      {"sunny-alert", "\U000F0F37"},
+      {"sunny-off", "\U000F14E4"},
+      {"sunset", "\U000F059A"},
+      {"sunset-down", "\U000F059B"},
+      {"sunset-up", "\U000F059C"},
+      {"tornado", "\U000F0F38"},
+      {"windy", "\U000F059D"},
+      {"windy-variant", "\U000F059E"},
+      };
+
+
+      // Fonction de couleur météo depuis palette exacte
+      auto get_weather_color = [&](const std::string& state) -> esphome::Color {
+        // Soleil/alert/off
+        if (state == "sunny" || state == "sunny-alert" || state == "sunny-off") return YELLOW;
+
+        // Pluie
+        if (state == "rainy" || state == "pouring" || state == "partly-rainy") return BLUE;
+
+        // Orage
+        if (state == "lightning" || state == "lightning-rainy" || state == "partly-lightning") return RED;
+
+        // Nuages "forts"
+        if (state == "cloudy" || state == "cloudy-alert" || state == "cloudy-arrow-right") return BLACK;
+
+        // Nuages légers = orange
+        if (state == "partlycloudy" || state == "night-partly-cloudy") return ORANGE;
+
+        // Brouillard, brume : blanc (idéalement avec fond noir)
+        if (state == "fog" || state == "hazy") return WHITE;
+
+        // Grêle
+        if (state == "hail") return ORANGE;
+
+        // Neige (et variantes) : blanc
+        if (state == "snowy" || state == "snowy-heavy" || state == "snowy-rainy"
+            || state == "partly-snowy" || state == "partly-snowy-rainy") return WHITE;
+
+        // Nuit
+        if (state == "night" || state == "clear-night") return BLUE;
+
+        // Ouragan/tornade
+        if (state == "hurricane" || state == "tornado") return RED;
+
+        // Vent
+        if (state == "windy" || state == "windy-variant") return GREEN;
+
+        // Crépuscule/lever/coucher
+        if (state == "sunset" || state == "sunset-down" || state == "sunset-up") return ORANGE;
+
+        // Fallback (pour le reste)
+        return BLACK;
+      };
+
+      // Récupération des états des sensors
+      std::string weather_future_state_0 = id(condition_meteo_future_0).state;
+      std::string weather_future_state_1 = id(condition_meteo_future_1).state;
+      std::string weather_future_state_2 = id(condition_meteo_future_2).state;
+
+      int temperature_future_0 = id(temperature_meteo_future_0).state;
+      int temperature_future_1 = id(temperature_meteo_future_1).state;
+      int temperature_future_2 = id(temperature_meteo_future_2).state;
+
+      //Récupération meteo actuelle
+      std::string weather_current_state = id(condition_meteo_actuelle).state;
+
+      //Affichage meteo actuelle
+      //auto current_icon = weather_icon_map.find(weather_current_state);
+      //if (current_icon != weather_icon_map.end()) {
+          //it.printf(360, 100, id(mdi120), get_weather_color(weather_current_state), TextAlign::CENTER, "%s", current_icon->second.c_str());
+      //}
+      //it.printf(480, 20, id(font1), BLUE, TextAlign::TOP_RIGHT, "%.1f°C", id(temperature_ext).state);
+      // --- Icône météo actuelle avec CONTOUR BLEU 2 px ---
+      {
+        auto current_icon = weather_icon_map.find(weather_current_state);
+        if (current_icon != weather_icon_map.end()) {
+          const char* g = current_icon->second.c_str();
+          const int cx = 360, cy = 100;
+
+          // contour bleu 2 px (orthogonaux + diagonales)
+          it.printf(cx-2, cy,     id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+2, cy,     id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx,   cy-2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx,   cy+2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+
+          it.printf(cx-1, cy,     id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+1, cy,     id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx,   cy-1,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx,   cy+1,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+
+          it.printf(cx-2, cy-1,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx-2, cy+1,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+2, cy-1,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+2, cy+1,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+
+          it.printf(cx-1, cy-2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+1, cy-2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx-1, cy+2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+1, cy+2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+
+          it.printf(cx-2, cy-2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx-2, cy+2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+2, cy-2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+          it.printf(cx+2, cy+2,   id(mdi120), BLUE, TextAlign::CENTER, "%s", g);
+
+          // remplissage en couleur d'état
+          it.printf(cx, cy, id(mdi120), get_weather_color(weather_current_state), TextAlign::CENTER, "%s", g);
+        }
+      }
+
+      it.printf(480, 20, id(font1), BLUE, TextAlign::TOP_RIGHT, "%.1f°C", id(temperature_ext).state);
+
+      // Récupération du temps actuel
+      auto time = id(time_sntp).now(); 
+      int today = time.day_of_week; // 0 pour dimanche, 1 pour lundi, etc.
+
+      // Positions Y pour les éléments
+      int yPositionIcon = 270; // Position Y pour l'icône
+      int yPositionDayName = 225; // Position Y pour le nom du jour
+      int yPositionTemp = 320; // Position Y pour la température
+
+      // Noms des jours de la semaine
+      std::array<std::string, 7> weekdays = {"Sam.", "Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven."};
+
+      // Positions X spécifiées pour chaque icône
+      std::array<int, 5> xPositions = {60, 150, 240, 330, 420};
+
+      // Boucle pour afficher les noms des jours, les icônes et températures
+      for (int i = 0; i < 5; i++) {
+          int future_day_index = (today + i) % 7;
+          std::string day_name = weekdays[future_day_index];
+
+          std::string weather_future_state;
+          int temperature_future;
+
+          switch (i) {
+              case 0:
+                  weather_future_state = id(condition_meteo_future_0).state;
+                  temperature_future = id(temperature_meteo_future_0).state;
+                  break;
+              case 1:
+                  weather_future_state = id(condition_meteo_future_1).state;
+                  temperature_future = id(temperature_meteo_future_1).state;
+                  break;
+              case 2:
+                  weather_future_state = id(condition_meteo_future_2).state;
+                  temperature_future = id(temperature_meteo_future_2).state;
+                  break;
+              case 3:
+                  weather_future_state = id(condition_meteo_future_3).state;
+                  temperature_future = id(temperature_meteo_future_3).state;
+                  break;
+              case 4:
+                  weather_future_state = id(condition_meteo_future_4).state;
+                  temperature_future = id(temperature_meteo_future_4).state;
+                  break;
+          }
+
+          // Affichage du nom du jour
+          it.printf(xPositions[i], yPositionDayName, id(book25), BLACK, TextAlign::CENTER, "%s", day_name.c_str());
+
+          // Affichage de l'icône météo
+          //auto future_icon = weather_icon_map.find(weather_future_state);
+          //if (future_icon != weather_icon_map.end()) {
+              //it.printf(xPositions[i], yPositionIcon, id(mdi80), get_weather_color(weather_future_state), TextAlign::CENTER, "%s", future_icon->second.c_str());
+          //}
+          // --- Icône météo future avec CONTOUR BLEU ---
+          auto future_icon = weather_icon_map.find(weather_future_state);
+          if (future_icon != weather_icon_map.end()) {
+              const char* g = future_icon->second.c_str();
+              // contour bleu (4 passes)
+              it.printf(xPositions[i]-1, yPositionIcon, id(mdi80), BLUE, TextAlign::CENTER, "%s", g);
+              it.printf(xPositions[i]+1, yPositionIcon, id(mdi80), BLUE, TextAlign::CENTER, "%s", g);
+              it.printf(xPositions[i], yPositionIcon-1, id(mdi80), BLUE, TextAlign::CENTER, "%s", g);
+              it.printf(xPositions[i], yPositionIcon+1, id(mdi80), BLUE, TextAlign::CENTER, "%s", g);
+              // remplissage couleur
+              it.printf(xPositions[i], yPositionIcon, id(mdi80), get_weather_color(weather_future_state), TextAlign::CENTER, "%s", g);
+          }
+          // Affichage de la température
+          esphome::Color temp_color = (temperature_future >= 0) ? BLUE : RED;
+          it.printf(xPositions[i], yPositionTemp, id(book25), temp_color, TextAlign::CENTER, "%d°C", temperature_future);
+      }
+
+      // conso journalière et prod solaire
+      it.print(20, 340, id(mdi36), RED, TextAlign::TOP_LEFT, "\U000F1904");
+      it.printf(85, 340, id(bold30), RED, TextAlign::TOP_LEFT, "%.1fkWh", id(conso_jour).state);
+
+      it.line(240, 335, 240, 538, BLACK);
+      it.line(10, 335, 470, 335, BLACK);
+      it.line(10, 710, 470, 710, BLACK);
+
+      it.print(20, 376, id(mdi36), GREEN, TextAlign::TOP_LEFT, "\U000F1A74");
+      it.printf(85, 376, id(bold30), GREEN, TextAlign::TOP_LEFT, "%.1fkWh", id(prod_jour).state);
+
+      it.printf(20, 413, id(bold30), BLACK, TextAlign::TOP_LEFT, "Inst. %.0fW", id(conso_maison).state);
+
+
+      // --- NOUVEAU BLOC TEMPO GRAPHIQUE (Final, avec contour) ---
+            it.print(120, 456, id(bold30), BLACK, TextAlign::TOP_CENTER, "TEMPO" );
+
+            // Fonction "maison" pour dessiner un rectangle arrondi, simplifiée
+            auto draw_filled_round_rectangle = 
+              [&](int x, int y, int w, int h, int r, esphome::Color color) {
+                it.filled_rectangle(x, y + r, w, h - 2 * r, color);
+                it.filled_rectangle(x + r, y, w - 2 * r, h, color);
+                it.filled_circle(x + r, y + r, r, color);
+                it.filled_circle(x + w - r, y + r, r, color);
+                it.filled_circle(x + r, y + h - r, r, color);
+                it.filled_circle(x + w - r, y + h - r, r, color);
+            };
+
+            // Fonction pour déterminer les couleurs
+            auto get_tempo_colors = [&](const std::string& color_str) -> std::pair<esphome::Color, esphome::Color> {
+                std::string lower_str = color_str;
+                std::transform(lower_str.begin(), lower_str.end(), lower_str.begin(),
+                              [](unsigned char c){ return std::tolower(c); });
+
+                if (lower_str.find("bleu") != std::string::npos) return {BLUE, WHITE};
+                if (lower_str.find("blanc") != std::string::npos) return {WHITE, BLACK};
+                if (lower_str.find("rouge") != std::string::npos) return {RED, WHITE};
+                
+                return {BLACK, WHITE};
+            };
+
+            // Définition de la géométrie
+            const int box_width = 210;
+            const int box_height = 55;
+            const int box_radius = 12;
+            const int border_thickness = 2;
+            const int x_pos = 15;
+            const int y_today = 495; // 480 + 10 + 5
+            const int y_tomorrow = y_today + box_height + 8;
+
+            // Récupération des états Tempo
+            std::string today_tempo_str = id(rte_tempo_couleur_actuelle).state;
+            std::string tomorrow_tempo_str = id(rte_tempo_prochaine_couleur).state;
+
+            // --- Bloc "Aujourd'hui" ---
+            {
+                auto colors = get_tempo_colors(today_tempo_str);
+                esphome::Color fill_color = colors.first;
+                esphome::Color text_color = colors.second;
+                
+                // Dessine un contour blanc en premier
+                draw_filled_round_rectangle(x_pos, y_today, box_width, box_height, box_radius, WHITE);
+                // Puis dessine le remplissage coloré par-dessus, en plus petit
+                draw_filled_round_rectangle(x_pos + border_thickness, y_today + border_thickness, 
+                                            box_width - 2 * border_thickness, box_height - 2 * border_thickness, 
+                                            box_radius - border_thickness, fill_color);
+                
+                it.print(x_pos + box_width / 2, y_today + box_height / 2, id(bold30), text_color, TextAlign::CENTER, "Aujourd'hui");
+            }
+
+            // --- Bloc "Demain" ---
+            {
+                auto colors = get_tempo_colors(tomorrow_tempo_str);
+                esphome::Color fill_color = colors.first;
+                esphome::Color text_color = colors.second;
+                
+                draw_filled_round_rectangle(x_pos, y_tomorrow, box_width, box_height, box_radius, WHITE);
+                draw_filled_round_rectangle(x_pos + border_thickness, y_tomorrow + border_thickness, 
+                                            box_width - 2 * border_thickness, box_height - 2 * border_thickness, 
+                                            box_radius - border_thickness, fill_color);
+                
+                it.print(x_pos + box_width / 2, y_tomorrow + box_height / 2, id(bold30), text_color, TextAlign::CENTER, "Demain");
+            }
+      // Horloge textuelle stylée
+      int heure = time.hour;
+      int heure_suivante = (heure + 1) % 24;
+      it.print(120, 620, id(book25), BLACK, TextAlign::TOP_CENTER, "Il est entre");
+      char heure_txt[32];
+      snprintf(heure_txt, sizeof(heure_txt), "%02dh et %02dh", heure, heure_suivante);
+      it.print(120, 650, id(bold40), BLUE, TextAlign::TOP_CENTER, heure_txt);
+
+      // affichage des pièces chauffées
+      it.printf(0, 720, id(book25), BLACK, TextAlign::TOP_LEFT, "Chauffage:");
+      if (id(nb_chauffage_act).state > 0) {
+          it.printf(140, 720, id(book25), RED, TextAlign::TOP_LEFT, "Oui");
+      } else {
+          it.printf(140, 720, id(book25), BLUE, TextAlign::TOP_LEFT, "Non");
+      }
+      std::string heatedRooms = "";
+      if (id(heated_chambre_de_bebe).state) heatedRooms += "- Chambre de Duane ";
+      if (id(heated_bureau).state) heatedRooms += "- Bureau ";
+      if (id(heated_chambre_de_nell).state) heatedRooms += "- Chambre de Nell ";
+      if (id(heated_chambre_des_garcons).state) heatedRooms += "- Chambre des gars ";
+      if (id(heated_chambre_des_parents).state) heatedRooms += "- Chambre des Parents ";
+      if (id(heated_cuisine).state) heatedRooms += "- Cuisine ";
+      if (id(heated_entree).state) heatedRooms += "- Entree ";
+      if (id(heated_salon).state) heatedRooms += "- Salon ";
+
+      if (!heatedRooms.empty()) {
+          it.printf(0, 745, id(font1_2), GREEN, TextAlign::TOP_LEFT, "%s", heatedRooms.c_str());
+      } else {
+          it.printf(0, 745, id(font1_2), BLACK, TextAlign::TOP_LEFT, "Aucune piece chauffee");
+      }
+
+      // Fonctions couleur pour températures/humidité
+      auto get_color_temperature_salon = [&](float temp) -> esphome::Color {
+        if (temp < 19) return BLUE;
+        if (temp < 21) return GREEN;
+        if (temp < 23) return ORANGE;
+        if (temp < 24) return ORANGE;
+        return RED;
+      };
+      auto get_color_temperature_ext = [&](float temp) -> esphome::Color {
+        if (temp < 8) return BLUE;
+        if (temp < 16) return BLACK;
+        if (temp < 22) return GREEN;
+        if (temp < 26) return ORANGE;
+        return RED;
+      };
+      auto get_color_humidity_salon = [&](float hum) -> esphome::Color {
+        if (hum < 40) return BLUE;
+        if (hum < 60) return GREEN;
+        if (hum < 75) return ORANGE;
+        return RED;
+      };
+      auto get_color_trajet_caro = [&](float min) -> esphome::Color {
+        return (min > 15) ? RED : GREEN;
+      };
+      auto get_color_trajet_max = [&](float min) -> esphome::Color {
+        return (min > 34) ? RED : GREEN;
+      };
+
+      // Temps de trajets (couleur dynamique)
+      it.printf(0, 765, id(book25), get_color_trajet_caro(id(trajet_caro).state), TextAlign::TOP_LEFT, "Traj.Caro %.0f min", id(trajet_caro).state);
+      it.line(240, 765, 240, 800, BLACK);
+      it.printf(480, 765, id(book25), get_color_trajet_max(id(trajet_max).state), TextAlign::TOP_RIGHT, "Traj.Max %.0f min", id(trajet_max).state);
+
+      // Températures maison (icône couleur fixe, valeur dynamique)
+      it.print(245, 330, id(mdi80), BLACK, TextAlign::TOP_LEFT, "\U000F0510");
+      it.printf(480, 330, id(bold70), get_color_temperature_salon(id(temperature_salon).state), TextAlign::TOP_RIGHT, "%.1f°", id(temperature_salon).state);
+
+      // Humidité salon (icône couleur fixe, valeur dynamique)
+      it.print(245, 400, id(mdi80), BLUE, TextAlign::TOP_LEFT, "\U000F058E");
+      it.printf(480, 400, id(bold70), get_color_humidity_salon(id(hum_salon).state), TextAlign::TOP_RIGHT, "%.1f%%", id(hum_salon).state);
+
+      // Température extérieure (icône couleur fixe, valeur dynamique)
+      it.print(245, 470, id(mdi80), BLACK, TextAlign::TOP_LEFT, "\U000F0510");
+      it.printf(480, 470, id(bold70), get_color_temperature_ext(id(temperature_ext).state), TextAlign::TOP_RIGHT, "%.1f°", id(temperature_ext).state);
+
+
+      // batterie
+      {
+        auto clamp_int = [](int v, int lo, int hi){ return v < lo ? lo : (v > hi ? hi : v); };
+
+        auto draw_battery_icon_vertical_segmented = [&](int x, int y, int w, int h, int pct, esphome::Color seg_color, int bar_count) {
+          pct = clamp_int(pct, 0, 100);
+          const int stroke = 5;
+          const int cap_h  = (int)(h * 0.12f);
+
+          // cadre noir
+          it.filled_rectangle(x, y + cap_h, w, h - cap_h, BLACK);
+          const int cap_w = (int)(w * 0.35f);
+          const int cap_x = x + (w - cap_w) / 2;
+          it.filled_rectangle(cap_x, y, cap_w, cap_h, BLACK);
+
+          // intérieur blanc
+          const int inner_x = x + stroke;
+          const int inner_y = y + cap_h + stroke;
+          const int inner_w = w - 2*stroke;
+          const int inner_h = h - cap_h - 2*stroke;
+          it.filled_rectangle(inner_x, inner_y, inner_w, inner_h, WHITE);
+
+          // segments
+          bar_count = clamp_int(bar_count, 3, 8);
+          const int gap = 3;
+          const int seg_h = (inner_h - gap * (bar_count - 1)) / bar_count;
+          int lit = (pct * bar_count + 99) / 100;
+          lit = clamp_int(lit, 0, bar_count);
+
+          int y_cursor = inner_y + inner_h - seg_h;
+          for (int i = 0; i < bar_count; i++) {
+            if (i < lit) {
+              it.filled_rectangle(inner_x, y_cursor, inner_w, seg_h, seg_color);
+            }
+            y_cursor -= (seg_h + gap);
+          }
+        };
+
+        auto draw_battery_bar = [&](int x, int y, int w, int h, int pct, esphome::Color color) {
+          const int r = 4;
+          it.filled_rectangle(x + r, y, w - 2*r, h, BLACK);
+          it.filled_rectangle(x, y + r, w, h - 2*r, BLACK);
+          it.filled_circle(x + r, y + r, r, BLACK);
+          it.filled_circle(x + w - r, y + r, r, BLACK);
+          it.filled_circle(x + r, y + h - r, r, BLACK);
+          it.filled_circle(x + w - r, y + h - r, r, BLACK);
+
+          const int ix = x + 2, iy = y + 2;
+          const int iw = w - 4, ih = h - 4;
+          it.filled_rectangle(ix, iy, iw, ih, WHITE);
+
+          pct = clamp_int(pct, 0, 100);
+          const int fw = (iw * pct) / 100;
+          it.filled_rectangle(ix, iy, fw, ih, color);
+        };
+
+        int soc = id(battery_level).has_state() ? (int) roundf(atof(id(battery_level).state.c_str())) : 0;
+        soc = clamp_int(soc, 0, 100);
+
+        esphome::Color bat_color = (soc < 10) ? RED : (soc < 30) ? ORANGE : GREEN;
+
+        // --- Positionnement corrigé ---
+        const int w_icon = 68;   // plus étroit
+        const int h_icon = 60;
+        const int x_icon = 251;  // centré sous les autres
+        const int y_icon = 565;  // descendu pour laisser de l’air
+
+        draw_battery_icon_vertical_segmented(x_icon, y_icon, w_icon, h_icon, soc, bat_color, 6);
+
+        // texte % aligné comme les autres valeurs
+        it.printf(480, y_icon, id(bold70), bat_color, TextAlign::TOP_RIGHT, "%d%%", soc);
+
+        // barre en dessous
+        const int bar_w = 200;
+        const int bar_h = 14;
+        const int x_bar = x_icon;
+        const int y_bar = y_icon + h_icon + 10; // 635
+        draw_battery_bar(x_bar, y_bar, bar_w, bar_h, soc, bat_color);
+      }
+
+
+      // Bloc lumières (juste avant la séparation)
+      it.print(245, 640, id(mdi80), YELLOW,  TextAlign::TOP_LEFT, "\U000F1252");
+      it.printf(480, 645, id(bold70), ORANGE, TextAlign::TOP_RIGHT, "%.0f", id(light_on).state);
+      
+      // Affichage HMAJ et heure de MAJ à droite
+      auto update_time = id(time_sntp).now();
+      char maj_str[16];
+      snprintf(maj_str, sizeof(maj_str), "HMAJ %02dh%02d", update_time.hour, update_time.minute);
+      // On place à droite, bien collé
+      it.printf(480, 720, id(book25), BLACK, TextAlign::TOP_RIGHT, "%s", maj_str);
+
+# ▶️ Script de rafraîchissement au boot
+script:
+  - id: update_screen
+    then:
+      - component.update: epaper_display
+      - delay: 500ms
+      - component.update: epaper_display
+      - lambda: |-
+          id(recorded_display_refresh) += 1;
+
+          // Publie le timestamp "technique" si tu l'utilises ailleurs
+          auto t = id(time_sntp).now();
+          id(display_last_update).publish_state(t.timestamp);
+
+          // Publie le texte lisible dans le text_sensor "last_refresh"
+          char str[32];
+          snprintf(str, sizeof(str), "%02d/%02d %02d:%02d", t.day_of_month, t.month, t.hour, t.minute);
+          id(last_refresh).publish_state(std::string(str));
+# ⏱ Rafraîchissement 1ère fois au boot (déclenché uniquement si jamais encore fait)
+interval:
+  - interval: 45s
+    then:
+      - lambda: |-
+          if (id(recorded_display_refresh) == 0) {
+            id(update_screen).execute();
+          }
+
+time:
+  - platform: sntp
+    id: time_sntp
+    timezone: Europe/Paris
+    on_time:
+      - seconds: 0
+        minutes: 5
+        hours: 0
+        then:
+          - script.execute: update_screen
+          - lambda: |-
+              id(today) = id(time_sntp).now().day_of_week;
+      - seconds: 0
+        minutes: 0
+        hours: 8
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 9
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 10
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 11
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 12
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 13
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 14
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 15
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 16
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 17
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 18
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 19
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 20
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 21
+        then:
+          - script.execute: update_screen
+      - seconds: 0
+        minutes: 0
+        hours: 22
+        then:
+          - script.execute: update_screen
+
+
+
+text_sensor:
+
+  - platform: template
+    name: "Dernier rafraîchissement écran"
+    id: last_refresh
+    icon: "mdi:update"
+    update_interval: never
+
+  - platform: homeassistant
+    id: jour_de_la_semaine
+    entity_id: sensor.jour_de_la_semaine
+
+  - platform: homeassistant
+    id: jour_du_mois
+    entity_id: sensor.jour_du_mois
+
+  - platform: homeassistant
+    id: mois_actuel
+    entity_id: sensor.mois_actuel
+
+  - platform: homeassistant
+    id: condition_meteo_actuelle
+    entity_id: sensor.weather_condition_now
+
+  - platform: homeassistant
+    id: condition_meteo_future_0
+    entity_id: sensor.weather_condition_future_0
+
+  - platform: homeassistant
+    id: condition_meteo_future_1
+    entity_id: sensor.weather_condition_future_1
+
+  - platform: homeassistant
+    id: condition_meteo_future_2
+    entity_id: sensor.weather_condition_future_2
+
+  - platform: homeassistant
+    id: condition_meteo_future_3
+    entity_id: sensor.weather_condition_future_3
+
+  - platform: homeassistant
+    id: condition_meteo_future_4
+    entity_id: sensor.weather_condition_future_4
+
+  - platform: homeassistant
+    id: rte_tempo_couleur_actuelle
+    entity_id: sensor.rte_tempo_couleur_actuelle
+
+  - platform: homeassistant
+    id: rte_tempo_prochaine_couleur
+    entity_id: sensor.rte_tempo_prochaine_couleur
+
+  - platform: homeassistant
+    name: "Battery Level"
+    id: battery_level
+    entity_id: sensor.battery_percentage
+
+sensor:
+  - platform: wifi_signal
+    id: wifisignal
+    name: "Weatherman - WiFi Signal Strength"
+    unit_of_measurement: "dBm"
+    entity_category: "diagnostic"
+    update_interval: 60s
+
+  - platform: homeassistant
+    id: temperature_ext
+    entity_id: sensor.your
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: temperature_meteo_future_0
+    entity_id: sensor.weather_temperature_future_0
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  - platform: homeassistant
+    id: temperature_meteo_future_1
+    entity_id: sensor.weather_temperature_future_1
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  - platform: homeassistant
+    id: temperature_meteo_future_2
+    entity_id: sensor.weather_temperature_future_2
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  - platform: homeassistant
+    id: temperature_meteo_future_3
+    entity_id: sensor.weather_temperature_future_3
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  - platform: homeassistant
+    id: temperature_meteo_future_4
+    entity_id: sensor.weather_temperature_future_4
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  - platform: homeassistant
+    id: conso_jour
+    entity_id: sensor.your
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: prod_jour
+    entity_id: sensor.prod_solaire
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: conso_maison
+    entity_id: sensor.your
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: nb_chauffage_act
+    entity_id: sensor.total_chauffage
+
+  - platform: homeassistant
+    id: heated_chambre_de_bebe
+    entity_id: sensor.chambre_de_bebe_chauffage
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: heated_bureau
+    entity_id: sensor.bureau_chauffage
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: heated_chambre_de_xxx
+    entity_id: sensor.chambre_de_nell_chauffage
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: heated_chambre_des_xxx
+    entity_id: sensor.chambre_des_xxx
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: heated_chambre_des_xxx
+    entity_id: sensor.chambre_des_xxx
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: heated_cuisine
+    entity_id: sensor.cuisine_chauffage
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: heated_entree
+    entity_id: sensor.entree_chauffage
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: heated_salon
+    entity_id: sensor.salon_chauffage
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: trajet_caro
+    entity_id: sensor.trajet_xxx
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: trajet_max
+    entity_id: sensor.trajet_max
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: temperature_salon
+    entity_id: sensor.capteur_salon_temperature
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: hum_salon
+    entity_id: sensor.capteur_salon_humidity
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: homeassistant
+    id: light_on
+    entity_id: sensor.nombre_de_lumieres_allumees
+    accuracy_decimals: 0
+    internal: true
+  - platform: template
+    name: ${friendly_name} Last Update
+    device_class: timestamp
+    id: display_last_update
+
+
+switch:
+  - platform: template
+    name: "Forcer Rafraîchissement Écran"
+    id: force_refresh_screen
+    turn_on_action:
+      - script.execute: update_screen
+      - switch.turn_off: force_refresh_screen
+
+binary_sensor:          
+  - platform: status
+    name: Online
+    id: S2screen
