@@ -1,62 +1,38 @@
-esphome:
-  name: your
-  friendly_name: your
-  min_version: 2025.5.0
-  name_add_mac_suffix: false
-  on_boot:
-    priority: -100
-    then:
-      - delay: 45s
-      - script.execute: update_screen
-
-esp32:
-  board: your
-  framework:
-    type: arduino
-
-# Enable logging
-logger:
-
-# Allow Over-The-Air updates
-ota:
-  platform: esphome
-
-api:
-  encryption:
-    key: "your"
-
-wifi:
-  ssid: "your"
-  password: "your"
-
-
-globals:
-  - id: recorded_display_refresh
-    type: int
-    restore_value: yes
-    initial_value: '0' 
-  - id: last_screen_update
-    type: unsigned long
-    restore_value: no
-    initial_value: '0'
-  - id: current_hour
-    type: int
-  - id: current_minute
-    type: int
-  - id: today
-    type: int
-    restore_value: no
-    initial_value: '0'
-  - id: analyse_prete
-    type: bool
-    restore_value: no
-    initial_value: "false"
-  - id: cpu_speed
-    type: int
-    restore_value: no
-    initial_value: '0'
-
-# 🔤 Police compatible ❤️
+diff --git a//dev/null b/esphome.yaml
+index 0000000000000000000000000000000000000000..285e6e6bbfeccc9cfda8504ee42e6f12101cfcd8 100644
+--- a//dev/null
++++ b/esphome.yaml
+@@ -0,0 +1,358 @@
++esphome:
++  name: colorframe
++  friendly_name: Color Frame
++  min_version: 2025.5.0
++  name_add_mac_suffix: false
++  on_boot:
++    priority: -100
++    then:
++      - delay: 45s
++      - script.execute: update_screen
++
++esp32:
++  board: esp32-s3-devkitc-1
++  framework:
++    type: arduino
++
++logger:
++
++ota:
++  platform: esphome
++
++api:
++  encryption:
++    key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
++
++wifi:
++  ssid: "MyWiFiNetwork"
++  password: "super_secret_password"
++
++# Fonts and icons
 font:
   # Gotham Regular
   - file: "/config/esphome/GothamRnd-Book.ttf"
@@ -194,28 +170,24 @@ font:
     id: mdi120
     size: 200
     glyphs: *mdi-weather-glyphs
-
-# 🌀 Bus SPI pour écran
-spi:
-  clk_pin: GPIO18
-  mosi_pin: GPIO4  # Anciennement GPIO23, non dispo
-
-# 🖼️ Affichage e-paper
-display:
-  - platform: waveshare_epaper
-    id: epaper_display
-    model: 7.30in-f
-    cs_pin: GPIO5
-    dc_pin: GPIO6
-    reset_pin: GPIO7
-    busy_pin:
-      number: GPIO15
-      inverted: true
-    rotation: 270°
-    reset_duration: 2ms
-    update_interval: never
-    auto_clear_enabled: true
-    lambda: |-
++spi:
++  clk_pin: GPIO18
++  mosi_pin: GPIO4
++
++display:
++  - platform: waveshare_epaper
++    id: epaper_display
++    model: 7.30in-f
++    cs_pin: GPIO5
++    dc_pin: GPIO6
++    reset_pin: GPIO7
++    busy_pin:
++      number: GPIO15
++      inverted: true
++    rotation: 270°
++    update_interval: never
++    auto_clear_enabled: true
++    lambda: |-
       // Palette exacte (à 4 arguments)
       const auto BLACK   = Color(0,   0,   0,   0);
       const auto RED     = Color(255, 0,   0,   0);
@@ -523,6 +495,20 @@ display:
 
       it.printf(20, 413, id(bold30), BLACK, TextAlign::TOP_LEFT, "Inst. %.0fW", id(conso_maison).state);
 
+      // TEMPO bloc
+      //it.line(10, 451, 230, 451, BLACK);
+      //it.print(120, 456, id(bold30), BLACK, TextAlign::TOP_CENTER, "TEMPO" );
+      //it.print(20, 493, id(mdi36), BLACK, TextAlign::TOP_LEFT, "\U000F00F6");
+      // Couleur dynamique selon tempo (bleu/blanc/rouge)
+      //auto get_tempo_color = [&](const std::string& color_str) -> esphome::Color {
+          //if (color_str.find("Bleu") != std::string::npos) return BLUE;
+          //if (color_str.find("Blanc") != std::string::npos) return WHITE;
+          //if (color_str.find("Rouge") != std::string::npos) return RED;
+          //return BLACK;
+      //};
+      //it.printf(85, 493, id(bold30), get_tempo_color(id(rte_tempo_couleur_actuelle).state), TextAlign::TOP_LEFT, "%s", id(rte_tempo_couleur_actuelle).state.c_str());
+      //it.print(20, 520, id(mdi36), BLACK, TextAlign::TOP_LEFT, "\U000F1135");
+      //it.printf(85, 520, id(bold30), get_tempo_color(id(rte_tempo_prochaine_couleur).state), TextAlign::TOP_LEFT, "%s", id(rte_tempo_prochaine_couleur).state.c_str());
 
       // --- NOUVEAU BLOC TEMPO GRAPHIQUE (Final, avec contour) ---
             it.print(120, 456, id(bold30), BLACK, TextAlign::TOP_CENTER, "TEMPO" );
@@ -762,338 +748,269 @@ display:
       // On place à droite, bien collé
       it.printf(480, 720, id(book25), BLACK, TextAlign::TOP_RIGHT, "%s", maj_str);
 
-# ▶️ Script de rafraîchissement au boot
-script:
-  - id: update_screen
-    then:
-      - component.update: epaper_display
-      - delay: 500ms
-      - component.update: epaper_display
-      - lambda: |-
-          id(recorded_display_refresh) += 1;
-
-          // Publie le timestamp "technique" si tu l'utilises ailleurs
-          auto t = id(time_sntp).now();
-          id(display_last_update).publish_state(t.timestamp);
-
-          // Publie le texte lisible dans le text_sensor "last_refresh"
-          char str[32];
-          snprintf(str, sizeof(str), "%02d/%02d %02d:%02d", t.day_of_month, t.month, t.hour, t.minute);
-          id(last_refresh).publish_state(std::string(str));
-# ⏱ Rafraîchissement 1ère fois au boot (déclenché uniquement si jamais encore fait)
-interval:
-  - interval: 45s
-    then:
-      - lambda: |-
-          if (id(recorded_display_refresh) == 0) {
-            id(update_screen).execute();
-          }
-
-time:
-  - platform: sntp
-    id: time_sntp
-    timezone: Europe/Paris
-    on_time:
-      - seconds: 0
-        minutes: 5
-        hours: 0
-        then:
-          - script.execute: update_screen
-          - lambda: |-
-              id(today) = id(time_sntp).now().day_of_week;
-      - seconds: 0
-        minutes: 0
-        hours: 8
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 9
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 10
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 11
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 12
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 13
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 14
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 15
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 16
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 17
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 18
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 19
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 20
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 21
-        then:
-          - script.execute: update_screen
-      - seconds: 0
-        minutes: 0
-        hours: 22
-        then:
-          - script.execute: update_screen
-
-
-
-text_sensor:
-
-  - platform: template
-    name: "Dernier rafraîchissement écran"
-    id: last_refresh
-    icon: "mdi:update"
-    update_interval: never
-
-  - platform: homeassistant
-    id: jour_de_la_semaine
-    entity_id: sensor.jour_de_la_semaine
-
-  - platform: homeassistant
-    id: jour_du_mois
-    entity_id: sensor.jour_du_mois
-
-  - platform: homeassistant
-    id: mois_actuel
-    entity_id: sensor.mois_actuel
-
-  - platform: homeassistant
-    id: condition_meteo_actuelle
-    entity_id: sensor.weather_condition_now
-
-  - platform: homeassistant
-    id: condition_meteo_future_0
-    entity_id: sensor.weather_condition_future_0
-
-  - platform: homeassistant
-    id: condition_meteo_future_1
-    entity_id: sensor.weather_condition_future_1
-
-  - platform: homeassistant
-    id: condition_meteo_future_2
-    entity_id: sensor.weather_condition_future_2
-
-  - platform: homeassistant
-    id: condition_meteo_future_3
-    entity_id: sensor.weather_condition_future_3
-
-  - platform: homeassistant
-    id: condition_meteo_future_4
-    entity_id: sensor.weather_condition_future_4
-
-  - platform: homeassistant
-    id: rte_tempo_couleur_actuelle
-    entity_id: sensor.rte_tempo_couleur_actuelle
-
-  - platform: homeassistant
-    id: rte_tempo_prochaine_couleur
-    entity_id: sensor.rte_tempo_prochaine_couleur
-
-  - platform: homeassistant
-    name: "Battery Level"
-    id: battery_level
-    entity_id: sensor.battery_percentage
-
-sensor:
-  - platform: wifi_signal
-    id: wifisignal
-    name: "Weatherman - WiFi Signal Strength"
-    unit_of_measurement: "dBm"
-    entity_category: "diagnostic"
-    update_interval: 60s
-
-  - platform: homeassistant
-    id: temperature_ext
-    entity_id: sensor.your
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: temperature_meteo_future_0
-    entity_id: sensor.weather_temperature_future_0
-    unit_of_measurement: "°C"
-    accuracy_decimals: 1
-
-  - platform: homeassistant
-    id: temperature_meteo_future_1
-    entity_id: sensor.weather_temperature_future_1
-    unit_of_measurement: "°C"
-    accuracy_decimals: 1
-
-  - platform: homeassistant
-    id: temperature_meteo_future_2
-    entity_id: sensor.weather_temperature_future_2
-    unit_of_measurement: "°C"
-    accuracy_decimals: 1
-
-  - platform: homeassistant
-    id: temperature_meteo_future_3
-    entity_id: sensor.weather_temperature_future_3
-    unit_of_measurement: "°C"
-    accuracy_decimals: 1
-
-  - platform: homeassistant
-    id: temperature_meteo_future_4
-    entity_id: sensor.weather_temperature_future_4
-    unit_of_measurement: "°C"
-    accuracy_decimals: 1
-
-  - platform: homeassistant
-    id: conso_jour
-    entity_id: sensor.your
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: prod_jour
-    entity_id: sensor.prod_solaire
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: conso_maison
-    entity_id: sensor.your
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: nb_chauffage_act
-    entity_id: sensor.total_chauffage
-
-  - platform: homeassistant
-    id: heated_chambre_de_bebe
-    entity_id: sensor.chambre_de_bebe_chauffage
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: heated_bureau
-    entity_id: sensor.bureau_chauffage
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: heated_chambre_de_xxx
-    entity_id: sensor.chambre_de_nell_chauffage
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: heated_chambre_des_xxx
-    entity_id: sensor.chambre_des_xxx
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: heated_chambre_des_xxx
-    entity_id: sensor.chambre_des_xxx
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: heated_cuisine
-    entity_id: sensor.cuisine_chauffage
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: heated_entree
-    entity_id: sensor.entree_chauffage
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: heated_salon
-    entity_id: sensor.salon_chauffage
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: trajet_caro
-    entity_id: sensor.trajet_xxx
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: trajet_max
-    entity_id: sensor.trajet_max
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: temperature_salon
-    entity_id: sensor.capteur_salon_temperature
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: hum_salon
-    entity_id: sensor.capteur_salon_humidity
-    accuracy_decimals: 0
-    internal: true
-
-  - platform: homeassistant
-    id: light_on
-    entity_id: sensor.nombre_de_lumieres_allumees
-    accuracy_decimals: 0
-    internal: true
-  - platform: template
-    name: ${friendly_name} Last Update
-    device_class: timestamp
-    id: display_last_update
-
-
-switch:
-  - platform: template
-    name: "Forcer Rafraîchissement Écran"
-    id: force_refresh_screen
-    turn_on_action:
-      - script.execute: update_screen
-      - switch.turn_off: force_refresh_screen
-
-binary_sensor:          
-  - platform: status
-    name: Online
-    id: S2screen
++
++script:
++  - id: update_screen
++    then:
++      - component.update: epaper_display
++      - delay: 500ms
++      - component.update: epaper_display
++      - lambda: |-
++          id(recorded_display_refresh) += 1;
++          auto t = id(time_sntp).now();
++          id(display_last_update).publish_state(t.timestamp);
++          char str[32];
++          snprintf(str, sizeof(str), "%02d/%02d %02d:%02d", t.day_of_month, t.month, t.hour, t.minute);
++          id(last_refresh).publish_state(std::string(str));
++
++interval:
++  - interval: 45s
++    then:
++      - lambda: |-
++          if (id(recorded_display_refresh) == 0) {
++            id(update_screen).execute();
++          }
++
++time:
++  - platform: sntp
++    id: time_sntp
++    timezone: Europe/Paris
++    on_time:
++      - seconds: 0
++        minutes: 5
++        hours: 0
++        then:
++          - script.execute: update_screen
++      - seconds: 0
++        minutes: 0
++        hours: 8
++        then:
++          - script.execute: update_screen
++      - seconds: 0
++        minutes: 0
++        hours: 12
++        then:
++          - script.execute: update_screen
++      - seconds: 0
++        minutes: 0
++        hours: 18
++        then:
++          - script.execute: update_screen
++
++text_sensor:
++  - platform: template
++    name: "Last Screen Refresh"
++    id: last_refresh
++    icon: "mdi:update"
++    update_interval: never
++
++  - platform: homeassistant
++    id: current_weekday
++    entity_id: sensor.current_weekday
++
++  - platform: homeassistant
++    id: current_day
++    entity_id: sensor.current_day
++
++  - platform: homeassistant
++    id: current_month
++    entity_id: sensor.current_month
++
++  - platform: homeassistant
++    id: weather_condition_now
++    entity_id: sensor.weather_condition_now
++
++  - platform: homeassistant
++    id: weather_condition_day_0
++    entity_id: sensor.weather_condition_day_0
++
++  - platform: homeassistant
++    id: weather_condition_day_1
++    entity_id: sensor.weather_condition_day_1
++
++  - platform: homeassistant
++    id: weather_condition_day_2
++    entity_id: sensor.weather_condition_day_2
++
++  - platform: homeassistant
++    id: weather_condition_day_3
++    entity_id: sensor.weather_condition_day_3
++
++  - platform: homeassistant
++    id: weather_condition_day_4
++    entity_id: sensor.weather_condition_day_4
++
++  - platform: homeassistant
++    id: tariff_color_today
++    entity_id: sensor.tariff_color_today
++
++  - platform: homeassistant
++    id: tariff_color_tomorrow
++    entity_id: sensor.tariff_color_tomorrow
++
++  - platform: homeassistant
++    name: "Battery Level"
++    id: battery_percentage
++    entity_id: sensor.device_battery_percentage
++
++sensor:
++  - platform: wifi_signal
++    id: wifi_signal
++    name: "Display WiFi Signal Strength"
++    unit_of_measurement: "dBm"
++    entity_category: diagnostic
++    update_interval: 60s
++
++  - platform: homeassistant
++    id: outdoor_temperature
++    entity_id: sensor.outdoor_temperature
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: weather_temperature_day_0
++    entity_id: sensor.weather_temperature_day_0
++    unit_of_measurement: "°C"
++    accuracy_decimals: 1
++
++  - platform: homeassistant
++    id: weather_temperature_day_1
++    entity_id: sensor.weather_temperature_day_1
++    unit_of_measurement: "°C"
++    accuracy_decimals: 1
++
++  - platform: homeassistant
++    id: weather_temperature_day_2
++    entity_id: sensor.weather_temperature_day_2
++    unit_of_measurement: "°C"
++    accuracy_decimals: 1
++
++  - platform: homeassistant
++    id: weather_temperature_day_3
++    entity_id: sensor.weather_temperature_day_3
++    unit_of_measurement: "°C"
++    accuracy_decimals: 1
++
++  - platform: homeassistant
++    id: weather_temperature_day_4
++    entity_id: sensor.weather_temperature_day_4
++    unit_of_measurement: "°C"
++    accuracy_decimals: 1
++
++  - platform: homeassistant
++    id: energy_consumption_today
++    entity_id: sensor.daily_energy_consumption
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: solar_production_today
++    entity_id: sensor.daily_solar_production
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: home_power_usage
++    entity_id: sensor.current_power_consumption
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_zones_active_count
++    entity_id: sensor.heating_zones_active
++
++  - platform: homeassistant
++    id: heating_bedroom_child
++    entity_id: sensor.heating_room_child
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_office
++    entity_id: sensor.heating_office
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_guest_room
++    entity_id: sensor.heating_room_guest
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_bedroom_second
++    entity_id: sensor.heating_room_second
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_master_bedroom
++    entity_id: sensor.heating_room_master
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_kitchen
++    entity_id: sensor.heating_kitchen
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_entryway
++    entity_id: sensor.heating_entryway
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: heating_living_room
++    entity_id: sensor.heating_living_room
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: commute_time_a
++    entity_id: sensor.commute_time_a
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: commute_time_b
++    entity_id: sensor.commute_time_b
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: living_room_temperature
++    entity_id: sensor.living_room_temperature
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: living_room_humidity
++    entity_id: sensor.living_room_humidity
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: homeassistant
++    id: lights_on_count
++    entity_id: sensor.lights_on_count
++    accuracy_decimals: 0
++    internal: true
++
++  - platform: template
++    name: ${friendly_name} Last Update
++    device_class: timestamp
++    id: display_last_update
++
++switch:
++  - platform: template
++    name: "Force Screen Refresh"
++    id: force_refresh_screen
++    turn_on_action:
++      - script.execute: update_screen
++      - switch.turn_off: force_refresh_screen
++
++binary_sensor:
++  - platform: status
++    name: Online
++    id: display_online
